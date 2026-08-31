@@ -1,9 +1,23 @@
 import os
 import random
+import threading
 import urllib.parse
 import requests
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+
+# Mini serveur HTTP pour valider le Web Service Gratuit de Render
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot OK")
+
+def run_health_check_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    server.serve_forever()
 
 # Récupère le token Telegram depuis l'environnement Render
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "TON_BOT_TOKEN_ICI")
@@ -53,6 +67,9 @@ async def picture_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await status_msg.edit_text(f"❌ Une erreur est survenue : `{str(e)}`", parse_mode="Markdown")
 
 if __name__ == "__main__":
+    # Lancement du serveur Web en arrière-plan pour Render
+    threading.Thread(target=run_health_check_server, daemon=True).start()
+
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler(["picture", "image", "oscar"], picture_handler))
     print("Bot $OSCAR en ligne et prêt !")
