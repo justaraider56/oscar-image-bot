@@ -20,7 +20,7 @@ def run_health_check_server():
     server.serve_forever()
 
 # Récupère le token Telegram depuis l'environnement Render
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "TON_BOT_TOKEN_ICI")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 
 DEFAULT_PROMPTS = [
     "Oscar the Shiba Inu dog jumping on a trampoline towards the Ethereum moon, cyberpunk style, digital art, highly detailed, 8k",
