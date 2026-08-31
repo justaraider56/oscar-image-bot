@@ -11,7 +11,6 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 
-# Serveur HTTP en arrière-plan pour satisfaire le test de port Render
 def start_dummy_server():
     port = int(os.environ.get("PORT", 10000))
     class HealthCheckHandler(http.server.SimpleHTTPRequestHandler):
@@ -21,31 +20,33 @@ def start_dummy_server():
             self.wfile.write(b"Bot OK")
         def log_message(self, format, *args):
             pass
-    
     with socketserver.TCPServer(("", port), HealthCheckHandler) as httpd:
         httpd.serve_forever()
 
+# Description physique exacte du logo $OSCAR (Shiba Inu orange, sourcils blancs, regard déterminé)
+OSCAR_BASE_PROMPT = "Oscar the crypto mascot, a fierce yellow-orange Shiba Inu dog head, prominent white eyebrows, intense black eyes, sharp ears, Ethereum ecosystem"
+
 OSCAR_SCENES = [
-    "holding a massive glowing blue Ethereum diamond on a pile of gold coins",
-    "flying a rocket with '$OSCAR' logo directly to a giant physical moon",
-    "sitting in front of a futuristic multi-monitor trading desk, bullish charts on screen",
-    "wearing a cyber suit with glowing blue ETH symbols, walking through a neon city",
-    "as a 3D mascot standing proudly on a large, reflective Ethereum octahedron",
-    "in a classic cartoon style, celebrating a '100x' profit chart"
+    "holding a massive glowing blue Ethereum crystal on a pile of gold coins, 3D render",
+    "flying a rocket to the moon with blue Ethereum symbols floating around, cinematic lighting",
+    "sitting at a high-tech crypto trading desk with green candle charts on screen",
+    "wearing a cyberpunk armor suit with glowing blue ETH logos, neon city backgroud",
+    "standing proudly as a 3D mascot next to a giant reflective Ethereum octahedron",
+    "wearing cool sunglasses in a luxury penthouse, crypto millionaire vibe, highly detailed"
 ]
 
 async def generate_picture(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_input = " ".join(context.args)
 
     if user_input:
-        prompt_final = f"Oscar character, $OSCAR Ethereum crypto mascot, {user_input}, photorealistic, 8k resolution, highly detailed, vibrant colors"
+        prompt_final = f"{OSCAR_BASE_PROMPT}, {user_input}, 3D digital art style, photorealistic lighting, 8k resolution, vibrant colors"
         caption_text = f"✨ **$OSCAR** : {user_input}"
     else:
         scene = random.choice(OSCAR_SCENES)
-        prompt_final = f"Oscar character, $OSCAR Ethereum crypto mascot, {scene}, photorealistic, 8k resolution, highly detailed, vibrant colors"
-        caption_text = "✨ **$OSCAR ETH** — Génération aléatoire"
+        prompt_final = f"{OSCAR_BASE_PROMPT}, {scene}, 3D digital art style, photorealistic lighting, 8k resolution"
+        caption_text = "✨ **$OSCAR ETH** — Génération originale"
 
-    status_message = await update.message.reply_text("⏳ Création de l'image $OSCAR...")
+    status_message = await update.message.reply_text("⏳ Création du nouveau visuel $OSCAR...")
 
     try:
         encoded_prompt = urllib.parse.quote(prompt_final)
@@ -74,7 +75,6 @@ def main():
         print("Erreur : Aucun token trouve.")
         return
 
-    # Lancement du serveur Web pour Render
     threading.Thread(target=start_dummy_server, daemon=True).start()
 
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
