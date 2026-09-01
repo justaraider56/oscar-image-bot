@@ -1,1 +1,0 @@
-# oscar-image-bot
