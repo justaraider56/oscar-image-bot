@@ -28,17 +28,31 @@ def start_dummy_server():
     except Exception as e:
         print(f"Erreur serveur HTTP : {e}")
 
+def format_number(num):
+    """Formatte les grands nombres (ex: 150000 -> 150K$)."""
+    try:
+        val = float(num)
+        if val >= 1_000_000:
+            return f"${val / 1_000_000:.2f}M"
+        if val >= 1_000:
+            return f"${val / 1_000:.1f}K"
+        return f"${val:.2f}"
+    except (ValueError, TypeError):
+        return "N/A"
+
 def generate_ai_story(context_event):
-    """Génère un commentaire unique via l'API Gemini."""
+    """Génère une punchline décalée et fun via Gemini."""
     if not GEMINI_API_KEY:
-        return "⚡ **Achat confirmé sur la blockchain !**"
+        return "🚨 **ALERTE BOUGIE VERTE !** Quelqu'un vient de faire chauffer la carte bleue !"
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+    
     prompt = (
-        "Tu es Oscar, la mascotte épique, décalée et humoristique du projet crypto $OSCAR et Shibutis. "
-        "Rédige un message très court (1 à 2 phrases maximum) avec des emojis pour réagir en direct dans le chat Telegram. "
-        f"Contexte de l'événement : {context_event}. "
-        "Sois percutant, dynamique et n'utilise jamais de guillemets autour de ton message."
+        "Tu es Oscar, la mascotte bouledogue/chien de garde complètement déjantée, drôle et hyper enthousiaste du projet crypto $OSCAR. "
+        "Rédige une réaction ultra courte (1 à 2 phrases max) pour fêter un nouvel achat sur Telegram. "
+        "Utilise du vocabulaire crypto/degen fun (bougie verte, to the moon, bag, meute, croquettes de luxe), des emojis, et reste très percutant. "
+        f"Contexte : {context_event}. "
+        "Ne mets JAMAIS de guillemets autour de ton texte."
     )
 
     try:
@@ -53,7 +67,7 @@ def generate_ai_story(context_event):
     except Exception as e:
         print(f"Erreur génération IA : {e}")
 
-    return "⚡ **Nouveau mouvement détecté sur la blockchain !**"
+    return "🟢 **GROS ACHAT EN COURS !** Oscar remue la queue, les bougies vertes arrivent !"
 
 async def track_oscar(app, last_state):
     if not OSCAR_PAIR:
@@ -68,10 +82,20 @@ async def track_oscar(app, last_state):
                 pair = pairs[0]
                 buys = pair.get("txns", {}).get("h1", {}).get("buys", 0)
                 price = pair.get("priceUsd", "N/A")
+                mcap = pair.get("fdv") or pair.get("marketCap", 0)
+                vol24 = pair.get("volume", {}).get("h24", 0)
 
                 if last_state["oscar_buys"] is not None and buys > last_state["oscar_buys"]:
-                    ai_message = generate_ai_story(f"Nouvel achat du token $OSCAR au prix de ${price}")
-                    msg = f"{ai_message}\n\n💰 **Prix $OSCAR :** ${price}"
+                    ai_punchline = generate_ai_story(f"Nouvel achat $OSCAR ! Prix: ${price}, Market Cap: {format_number(mcap)}")
+                    
+                    msg = (
+                        f"{ai_punchline}\n\n"
+                        f"📊 **Météo du Token $OSCAR :**\n"
+                        f"💵 **Prix :** `${price}`\n"
+                        f"🧢 **Market Cap :** `{format_number(mcap)}`\n"
+                        f"🔥 **Vol 24h :** `{format_number(vol24)}`"
+                    )
+                    
                     if CHAT_ID:
                         await app.bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode="Markdown")
 
@@ -95,8 +119,14 @@ async def track_shibutis(app, last_state):
                 token_id = latest_sale.get("token", {}).get("tokenId", "?")
 
                 if last_state["last_nft_sale_id"] is not None and sale_id != last_state["last_nft_sale_id"]:
-                    ai_message = generate_ai_story(f"Vente du NFT Shibuti #{token_id} pour {price_eth} ETH")
-                    msg = f"{ai_message}\n\n🖼️ **Shibuti #{token_id}** acheté pour **{price_eth} ETH** !"
+                    ai_punchline = generate_ai_story(f"Vente du NFT Shibuti #{token_id} pour {price_eth} ETH")
+                    
+                    msg = (
+                        f"{ai_punchline}\n\n"
+                        f"🖼️ **Shibuti #{token_id}** adopté !\n"
+                        f"💎 **Prix de vente :** `{price_eth} ETH`"
+                    )
+                    
                     if CHAT_ID:
                         await app.bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode="Markdown")
 
