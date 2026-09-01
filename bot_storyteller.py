@@ -5,7 +5,7 @@ import threading
 import requests
 import http.server
 import socketserver
-from telegram.ext import ApplicationBuilder
+from telegram.ext import ApplicationBuilder, Application
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
@@ -32,14 +32,16 @@ def start_dummy_server():
         def do_GET(self):
             self.send_response(200)
             self.end_headers()
-            self.wfile.write(b"Bot Storyteller Token + NFT OK")
+            self.wfile.write(b"Bot Storyteller OK")
         def log_message(self, format, *args):
             pass
-    with socketserver.TCPServer(("", port), HealthCheckHandler) as httpd:
-        httpd.serve_forever()
+    try:
+        with socketserver.TCPServer(("", port), HealthCheckHandler) as httpd:
+            httpd.serve_forever()
+    except Exception as e:
+        print(f"Erreur serveur HTTP : {e}")
 
 async def track_oscar(app, last_state):
-    """Vérifie les achats du token $OSCAR via DexScreener."""
     if not OSCAR_PAIR:
         return
     try:
@@ -64,7 +66,6 @@ async def track_oscar(app, last_state):
         print(f"Erreur suivi $OSCAR : {e}")
 
 async def track_shibutis(app, last_state):
-    """Vérifie les ventes NFT Shibutis via Reservoir."""
     if not SHIBUTIS_CA:
         return
     try:
@@ -89,23 +90,25 @@ async def track_shibutis(app, last_state):
     except Exception as e:
         print(f"Erreur suivi Shibutis NFT : {e}")
 
-async def main_loop(app):
+async def main_loop(app: Application):
     last_state = {"oscar_buys": None, "last_nft_sale_id": None}
     while True:
         await track_oscar(app, last_state)
         await track_shibutis(app, last_state)
         await asyncio.sleep(30)
 
+async def post_init(app: Application):
+    """Démarre la boucle de surveillance une fois l'application Telegram prête."""
+    asyncio.create_task(main_loop(app))
+
 def main():
     if not TELEGRAM_TOKEN:
-        print("Erreur : TELEGRAM_TOKEN manquant.")
+        print("Erreur : TELEGRAM_TOKEN manquant dans les variables d'environnement.")
         return
 
     threading.Thread(target=start_dummy_server, daemon=True).start()
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
-    loop = asyncio.get_event_loop()
-    loop.create_task(main_loop(app))
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).post_init(post_init).build()
 
     print("Bot Token + NFT en ligne !")
     app.run_polling()
