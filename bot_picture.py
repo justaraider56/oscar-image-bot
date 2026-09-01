@@ -11,6 +11,20 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 
+# Photos de référence hébergées sur ton GitHub
+REFERENCE_IMAGES = [
+    "https://raw.githubusercontent.com/justaraider56/oscar-image-bot/main/ref1.jpg",
+    "https://raw.githubusercontent.com/justaraider56/oscar-image-bot/main/ref2.jpg",
+]
+
+OSCAR_SCENES = [
+    "flying a rocket to the moon with glowing blue Ethereum symbols, 3D render, high detail",
+    "sitting in front of futuristic trading screens with green bullish charts, cinematic lighting",
+    "wearing a cyberpunk armor suit in a neon city street at night, 8k resolution",
+    "holding a massive glowing blue Ethereum crystal on gold coins, photorealistic",
+    "wearing sunglasses in a penthouse overlooking a crypto skyscraper city"
+]
+
 def start_dummy_server():
     port = int(os.environ.get("PORT", 10000))
     class HealthCheckHandler(http.server.SimpleHTTPRequestHandler):
@@ -23,37 +37,29 @@ def start_dummy_server():
     with socketserver.TCPServer(("", port), HealthCheckHandler) as httpd:
         httpd.serve_forever()
 
-# Description physique exacte du logo $OSCAR (Shiba Inu orange, sourcils blancs, regard déterminé)
-OSCAR_BASE_PROMPT = "Oscar the crypto mascot, a fierce yellow-orange Shiba Inu dog head, prominent white eyebrows, intense black eyes, sharp ears, Ethereum ecosystem"
-
-OSCAR_SCENES = [
-    "holding a massive glowing blue Ethereum crystal on a pile of gold coins, 3D render",
-    "flying a rocket to the moon with blue Ethereum symbols floating around, cinematic lighting",
-    "sitting at a high-tech crypto trading desk with green candle charts on screen",
-    "wearing a cyberpunk armor suit with glowing blue ETH logos, neon city backgroud",
-    "standing proudly as a 3D mascot next to a giant reflective Ethereum octahedron",
-    "wearing cool sunglasses in a luxury penthouse, crypto millionaire vibe, highly detailed"
-]
-
 async def generate_picture(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_input = " ".join(context.args)
+    ref_image = random.choice(REFERENCE_IMAGES)
 
     if user_input:
-        prompt_final = f"{OSCAR_BASE_PROMPT}, {user_input}, 3D digital art style, photorealistic lighting, 8k resolution, vibrant colors"
+        prompt = f"In the exact style and character design of the reference image, {user_input}, highly detailed, 8k"
         caption_text = f"✨ **$OSCAR** : {user_input}"
     else:
         scene = random.choice(OSCAR_SCENES)
-        prompt_final = f"{OSCAR_BASE_PROMPT}, {scene}, 3D digital art style, photorealistic lighting, 8k resolution"
-        caption_text = "✨ **$OSCAR ETH** — Génération originale"
+        prompt = f"In the exact style and character design of the reference image, {scene}"
+        caption_text = "✨ **$OSCAR ETH** — Nouveau visuel IA"
 
-    status_message = await update.message.reply_text("⏳ Création du nouveau visuel $OSCAR...")
+    status_message = await update.message.reply_text("⏳ Génération d'une nouvelle variante $OSCAR...")
 
     try:
-        encoded_prompt = urllib.parse.quote(prompt_final)
+        encoded_prompt = urllib.parse.quote(prompt)
+        encoded_ref = urllib.parse.quote(ref_image, safe="")
         seed = random.randint(1, 999999)
-        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&seed={seed}&model=flux&nologo=true"
 
-        response = requests.get(image_url, timeout=30)
+        # Appel img2img vers FLUX avec la photo de référence
+        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?image={encoded_ref}&width=1024&height=1024&seed={seed}&model=flux&nologo=true"
+
+        response = requests.get(image_url, timeout=35)
         
         if response.status_code == 200:
             image_bytes = io.BytesIO(response.content)
@@ -64,11 +70,11 @@ async def generate_picture(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown"
             )
         else:
-            await update.message.reply_text("❌ Serveur occupé, réessaie dans un instant.")
+            await update.message.reply_text("❌ Serveur d'image occupé, réessaie dans un instant.")
 
     except Exception as e:
         print(f"Erreur : {e}")
-        await update.message.reply_text("❌ Erreur lors de la génération de l'image.")
+        await update.message.reply_text("❌ Erreur lors de la génération.")
 
 def main():
     if not TELEGRAM_TOKEN:
